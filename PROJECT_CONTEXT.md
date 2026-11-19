@@ -24,7 +24,7 @@ Tabel transaksi memiliki 7 kolom:
 - **GET Request (`doGet`)**: Mengembalikan JSON ringkasan:
   - `status`: "success"
   - `totalTransactions`: Total baris transaksi
-  - `summary`: { pemasukan, pengeluaran, netFlow }
+  - `summary`: { saldoSaatIni, pemasukan, pengeluaran, netFlow }
   - `categoryBreakdown`: Objek akumulasi nominal per kategori { "Makanan & Minuman": 123456, ... }
   - `expenses`: Array seluruh transaksi pengeluaran (diurutkan terbesar ke terkecil)
   - `incomes`: Array seluruh transaksi pemasukan
