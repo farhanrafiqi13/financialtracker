@@ -6,42 +6,110 @@
   <title>FlowSync Finance</title>
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#0f172a">
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { -webkit-tap-highlight-color: transparent; }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(51, 65, 85, 0.8);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(71, 85, 105, 1);
+    }
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
 
+  <!-- Header -->
   <header class="p-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-20 flex justify-between items-center">
     <div>
       <h1 class="text-lg font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">FlowSync</h1>
       <p class="text-xs text-slate-400" id="txCount">Memuat data...</p>
     </div>
-    <button onclick="fetchDataFromSheets()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-medium rounded-lg border border-slate-700 flex items-center gap-1.5">
+    <button onclick="fetchDataFromSheets()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-medium rounded-lg border border-slate-700 flex items-center gap-1.5 transition">
       <span>🔄 Refresh</span>
     </button>
   </header>
 
+  <!-- Konten Utama -->
   <main class="p-4 flex-1 max-w-md mx-auto w-full space-y-4">
 
+    <!-- 1. Ringkasan Kartu Arus Kas & Kartu Interaktif Drill-Down -->
     <section class="bg-gradient-to-br from-slate-800 to-slate-800/60 p-4 rounded-2xl border border-slate-700/60 shadow-lg space-y-3">
       <div>
         <p class="text-xs font-medium text-slate-400">Arus Kas Bersih (Net Flow 2026)</p>
         <h2 id="netFlowVal" class="text-2xl font-bold text-white tracking-tight">Rp 0</h2>
       </div>
+
+      <!-- Kartu Interaktif Total Masuk & Total Keluar -->
       <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-700/50 text-xs">
-        <div class="bg-emerald-950/40 border border-emerald-900/50 p-2.5 rounded-xl">
-          <p class="text-emerald-400 font-medium">Total Masuk</p>
-          <p id="totalMasukVal" class="text-sm font-bold text-slate-200 mt-0.5">Rp 0</p>
+        <!-- Kartu Total Masuk (Drill-Down Trigger) -->
+        <button type="button" onclick="openDetailModal('PEMASUKAN')"
+          class="text-left bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-900/50 hover:border-emerald-600/70 p-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 group focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          <div class="flex items-center justify-between">
+            <span class="text-emerald-400 font-semibold flex items-center gap-1">Total Masuk</span>
+            <span class="text-emerald-400/70 group-hover:text-emerald-300 text-xs transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">↗</span>
+          </div>
+          <p id="totalMasukVal" class="text-sm font-bold text-slate-200 mt-1">Rp 0</p>
+          <span class="inline-block text-[10px] text-emerald-400/80 mt-1 font-medium">Lihat Detail ▾</span>
+        </button>
+
+        <!-- Kartu Total Keluar (Drill-Down Trigger) -->
+        <button type="button" onclick="openDetailModal('PENGELUARAN')"
+          class="text-left bg-rose-950/40 hover:bg-rose-900/40 border border-rose-900/50 hover:border-rose-600/70 p-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 group focus:outline-none focus:ring-1 focus:ring-rose-500">
+          <div class="flex items-center justify-between">
+            <span class="text-rose-400 font-semibold flex items-center gap-1">Total Keluar</span>
+            <span class="text-rose-400/70 group-hover:text-rose-300 text-xs transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">↗</span>
+          </div>
+          <p id="totalKeluarVal" class="text-sm font-bold text-slate-200 mt-1">Rp 0</p>
+          <span class="inline-block text-[10px] text-rose-400/80 mt-1 font-medium">Urutan Terbesar ▾</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 2. Section Diagram Donut Pengeluaran (Chart.js) -->
+    <section class="bg-gradient-to-br from-slate-800/80 to-slate-800/40 p-4 rounded-2xl border border-slate-700/60 shadow-lg space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Komposisi Pengeluaran</h3>
+          <p class="text-[10px] text-slate-400">Persentase kontribusi per kategori</p>
         </div>
-        <div class="bg-rose-950/40 border border-rose-900/50 p-2.5 rounded-xl">
-          <p class="text-rose-400 font-medium">Total Keluar</p>
-          <p id="totalKeluarVal" class="text-sm font-bold text-slate-200 mt-0.5">Rp 0</p>
+        <span id="chartTotalExpense" class="text-xs font-bold text-rose-400">Rp 0</span>
+      </div>
+
+      <!-- Canvas Diagram Donut -->
+      <div class="relative w-full aspect-square max-w-[210px] mx-auto flex items-center justify-center my-1">
+        <canvas id="expenseDonutChart"></canvas>
+        <div id="chartCenterInfo" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+          <span class="text-[10px] text-slate-400 font-medium">Pengeluaran</span>
+          <span id="chartCenterCount" class="text-xs font-bold text-slate-200">0 Pos</span>
+        </div>
+      </div>
+
+      <!-- Legend & Breakdown List -->
+      <div class="space-y-1 pt-2 border-t border-slate-700/50">
+        <div class="flex justify-between items-center text-[10px] text-slate-400 uppercase font-semibold pb-1">
+          <span>Kategori</span>
+          <span>Nominal & Persentase</span>
+        </div>
+        <div id="categoryBreakdownList" class="space-y-1.5 max-h-48 overflow-y-auto pr-0.5 text-xs">
+          <p class="text-center text-[11px] text-slate-500 py-3">Menghitung visualisasi pengeluaran...</p>
         </div>
       </div>
     </section>
 
+    <!-- 3. Form Input Transaksi Baru -->
     <details class="bg-slate-800/40 border border-slate-800 rounded-xl overflow-hidden group">
       <summary class="p-3 text-xs font-semibold text-slate-300 cursor-pointer flex justify-between items-center select-none">
         <span>➕ Input Transaksi Baru</span>
@@ -58,6 +126,7 @@
       </div>
     </details>
 
+    <!-- 4. Daftar Transaksi Terbaru -->
     <section class="space-y-2">
       <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Transaksi Terbaru</h3>
       <div id="txList" class="space-y-2">
@@ -65,6 +134,7 @@
       </div>
     </section>
 
+    <!-- 5. Pengaturan Web App URL -->
     <details class="bg-slate-800/20 border border-slate-800/60 rounded-xl">
       <summary class="p-3 text-[11px] text-slate-500 cursor-pointer select-none">Pengaturan Web App URL</summary>
       <div class="p-3 pt-0 space-y-2">
@@ -78,12 +148,68 @@
 
   </main>
 
+  <!-- Drill-Down Modal / Bottom Sheet -->
+  <div id="drillDownModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex flex-col justify-end sm:justify-center p-0 sm:p-4 transition-opacity duration-200" onclick="handleBackdropClick(event)">
+    <div class="w-full max-w-md mx-auto bg-slate-900 border border-slate-700/80 rounded-t-3xl sm:rounded-2xl max-h-[85vh] sm:max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-slate-800 flex justify-between items-start bg-slate-900/95 sticky top-0 z-10">
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="modalTypeBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Pemasukan</span>
+            <span id="modalOrderBadge" class="text-[10px] px-2 py-0.5 rounded-full font-medium"></span>
+          </div>
+          <h2 id="modalTitle" class="text-base font-bold text-white mt-1">Daftar Transaksi</h2>
+          <p id="modalSubtitle" class="text-xs text-slate-400">Total: Rp 0 • 0 transaksi</p>
+        </div>
+        <button onclick="closeDetailModal()" aria-label="Tutup" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-slate-300 hover:text-white transition font-bold text-sm">
+          ✕
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable List) -->
+      <div id="modalTxList" class="p-4 space-y-2 overflow-y-auto flex-1 text-xs">
+        <!-- Item transaksi drill-down akan dirender di sini -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-3 border-t border-slate-800 bg-slate-900/95 flex justify-between items-center text-[11px] text-slate-400">
+        <span id="modalFooterNote">FlowSync Detail</span>
+        <button onclick="closeDetailModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-200 font-medium transition">
+          Tutup
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <script>
+    // PWA Service Worker Registration
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./sw.js");
     }
 
-    const fmtIDR = (num) => "Rp " + Math.round(num).toLocaleString("id-ID");
+    // Helper format mata uang IDR
+    const fmtIDR = (num) => "Rp " + Math.round(num || 0).toLocaleString("id-ID");
+
+    // Global state
+    let allTransactionsData = [];
+    let expenseChart = null;
+
+    // Palet warna yang serasi dengan dark mode Tailwind
+    const chartPalette = [
+      "#f43f5e", // Rose
+      "#f59e0b", // Amber
+      "#3b82f6", // Blue
+      "#10b981", // Emerald
+      "#a855f7", // Purple
+      "#06b6d4", // Cyan
+      "#6366f1", // Indigo
+      "#f97316", // Orange
+      "#14b8a6", // Teal
+      "#ec4899", // Pink
+      "#64748b"  // Slate
+    ];
 
     document.addEventListener("DOMContentLoaded", () => {
       const savedUrl = localStorage.getItem("gas_webhook_url");
@@ -93,7 +219,14 @@
       } else {
         document.getElementById("txList").innerHTML = 
           '<div class="p-4 text-center text-xs text-amber-400">Harap masukkan dan simpan Web App URL di menu Pengaturan bawah.</div>';
+        document.getElementById("categoryBreakdownList").innerHTML = 
+          '<div class="p-4 text-center text-xs text-slate-500">Masukkan Web App URL untuk menampilkan grafik pengeluaran.</div>';
       }
+
+      // Shortcut tombol Escape untuk menutup modal
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeDetailModal();
+      });
     });
 
     function simpanUrl() {
@@ -116,37 +249,259 @@
         const data = await res.json();
 
         if (data.status === "success") {
-          txCountEl.innerText = `${data.totalTransactions} Transaksi Tersinkron`;
-          document.getElementById("netFlowVal").innerText = fmtIDR(data.summary.netFlow);
-          document.getElementById("totalMasukVal").innerText = fmtIDR(data.summary.pemasukan);
-          document.getElementById("totalKeluarVal").innerText = fmtIDR(data.summary.pengeluaran);
+          // Sinkronisasi data transaksi lengkap (allTransactions / transactions)
+          const txs = (Array.isArray(data.allTransactions) && data.allTransactions.length > 0)
+            ? data.allTransactions
+            : (Array.isArray(data.transactions) ? data.transactions : []);
+          
+          allTransactionsData = txs;
 
-          let html = "";
-          data.transactions.forEach(t => {
-            const isMasuk = t.tipe === "PEMASUKAN";
-            const color = isMasuk ? "text-emerald-400" : "text-slate-200";
-            const sign = isMasuk ? "+" : "-";
+          // Hitung atau gunakan summary
+          let totalMasuk = data.summary?.pemasukan;
+          let totalKeluar = data.summary?.pengeluaran;
+          let netFlow = data.summary?.netFlow;
 
-            html += `
-              <div class="bg-slate-800/60 border border-slate-700/50 p-3 rounded-xl flex justify-between items-center text-xs">
-                <div class="space-y-0.5 max-w-[65%]">
-                  <p class="font-semibold text-slate-200 truncate">${t.merchant}</p>
-                  <p class="text-[10px] text-slate-400">${t.kategori} • ${t.waktu}</p>
+          if (totalMasuk === undefined || totalKeluar === undefined) {
+            totalMasuk = txs.filter(t => (t.tipe || "").toUpperCase() === "PEMASUKAN")
+                            .reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0);
+            totalKeluar = txs.filter(t => (t.tipe || "").toUpperCase() === "PENGELUARAN")
+                             .reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0);
+            netFlow = totalMasuk - totalKeluar;
+          }
+
+          const countVal = data.totalTransactions || txs.length;
+          txCountEl.innerText = `${countVal} Transaksi Tersinkron`;
+          document.getElementById("netFlowVal").innerText = fmtIDR(netFlow);
+          document.getElementById("totalMasukVal").innerText = fmtIDR(totalMasuk);
+          document.getElementById("totalKeluarVal").innerText = fmtIDR(totalKeluar);
+
+          // Render Transaksi Terbaru (tampilkan hingga 20 data)
+          const recentTxs = (Array.isArray(data.transactions) && data.transactions.length > 0)
+            ? data.transactions
+            : txs.slice(0, 20);
+
+          if (recentTxs.length === 0) {
+            txListEl.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">Belum ada transaksi tercatat.</div>';
+          } else {
+            let html = "";
+            recentTxs.forEach(t => {
+              const isMasuk = (t.tipe || "").toUpperCase() === "PEMASUKAN";
+              const color = isMasuk ? "text-emerald-400" : "text-slate-200";
+              const sign = isMasuk ? "+" : "-";
+
+              html += `
+                <div class="bg-slate-800/60 border border-slate-700/50 p-3 rounded-xl flex justify-between items-center text-xs hover:border-slate-600/70 transition">
+                  <div class="space-y-0.5 max-w-[65%]">
+                    <p class="font-semibold text-slate-200 truncate">${t.merchant || 'Tanpa Keterangan'}</p>
+                    <p class="text-[10px] text-slate-400 truncate">${t.kategori || 'Lain-lain'} • ${t.waktu || '-'}</p>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <p class="font-bold ${color}">${sign} ${fmtIDR(Math.abs(Number(t.nominal)) || 0)}</p>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">${t.tipe}</span>
+                  </div>
                 </div>
-                <div class="text-right">
-                  <p class="font-bold ${color}">${sign} ${fmtIDR(t.nominal)}</p>
-                  <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">${t.tipe}</span>
-                </div>
-              </div>
-            `;
-          });
+              `;
+            });
+            txListEl.innerHTML = html;
+          }
 
-          txListEl.innerHTML = html;
+          // Perbarui Visualisasi Diagram Donut Pengeluaran
+          renderExpenseChart(allTransactionsData);
+
         } else {
           txListEl.innerHTML = '<div class="p-4 text-center text-xs text-rose-400">Gagal memuat data dari spreadsheet.</div>';
         }
       } catch (err) {
         txListEl.innerHTML = `<div class="p-4 text-center text-xs text-rose-400">Error koneksi: ${err.message}</div>`;
+      }
+    }
+
+    // Fungsi menghitung akumulasi kategori & merender Donut Chart
+    function renderExpenseChart(transactions) {
+      const expenseTxs = transactions.filter(t => (t.tipe || "").toUpperCase() === "PENGELUARAN");
+      const categoryMap = {};
+
+      expenseTxs.forEach(t => {
+        const cat = (t.kategori && t.kategori.trim()) ? t.kategori.trim() : "Lain-lain";
+        const nom = Math.abs(Number(t.nominal)) || 0;
+        categoryMap[cat] = (categoryMap[cat] || 0) + nom;
+      });
+
+      // Urutkan kategori berdasarkan akumulasi nominal terbesar
+      const sortedCategories = Object.keys(categoryMap).sort((a, b) => categoryMap[b] - categoryMap[a]);
+      const chartLabels = sortedCategories;
+      const chartData = sortedCategories.map(cat => categoryMap[cat]);
+      const totalExpense = chartData.reduce((acc, curr) => acc + curr, 0);
+
+      document.getElementById("chartTotalExpense").innerText = fmtIDR(totalExpense);
+      document.getElementById("chartCenterCount").innerText = `${sortedCategories.length} Pos`;
+
+      const backgroundColors = sortedCategories.map((_, i) => chartPalette[i % chartPalette.length]);
+      const breakdownEl = document.getElementById("categoryBreakdownList");
+
+      if (sortedCategories.length === 0) {
+        breakdownEl.innerHTML = '<p class="text-center text-[11px] text-slate-500 py-3">Belum ada pos pengeluaran.</p>';
+      } else {
+        let listHtml = "";
+        sortedCategories.forEach((cat, idx) => {
+          const val = categoryMap[cat];
+          const pct = totalExpense > 0 ? ((val / totalExpense) * 100).toFixed(1) : "0.0";
+          const color = backgroundColors[idx];
+
+          listHtml += `
+            <div class="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-slate-800/40 hover:bg-slate-800/80 transition text-xs">
+              <div class="flex items-center gap-2 min-w-0 pr-2">
+                <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${color}"></span>
+                <span class="font-medium text-slate-200 truncate">${cat}</span>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="font-semibold text-slate-200">${fmtIDR(val)}</span>
+                <span class="text-[10px] text-slate-400 font-mono ml-1">(${pct}%)</span>
+              </div>
+            </div>
+          `;
+        });
+        breakdownEl.innerHTML = listHtml;
+      }
+
+      // Update Chart.js
+      const canvas = document.getElementById("expenseDonutChart");
+      const ctx = canvas.getContext("2d");
+
+      if (expenseChart) {
+        expenseChart.destroy();
+      }
+
+      if (sortedCategories.length === 0) return;
+
+      expenseChart = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels: chartLabels,
+          datasets: [{
+            data: chartData,
+            backgroundColor: backgroundColors,
+            borderColor: "#0f172a",
+            borderWidth: 2,
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          cutout: "70%",
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "#1e293b",
+              titleColor: "#f1f5f9",
+              bodyColor: "#cbd5e1",
+              borderColor: "#334155",
+              borderWidth: 1,
+              padding: 10,
+              boxPadding: 4,
+              callbacks: {
+                label: function(context) {
+                  const val = context.raw || 0;
+                  const pct = totalExpense > 0 ? ((val / totalExpense) * 100).toFixed(1) : 0;
+                  return ` ${fmtIDR(val)} (${pct}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Modal Drill-down (Detail Masuk / Detail Keluar)
+    function openDetailModal(type) {
+      const modal = document.getElementById("drillDownModal");
+      const modalTitle = document.getElementById("modalTitle");
+      const modalTypeBadge = document.getElementById("modalTypeBadge");
+      const modalOrderBadge = document.getElementById("modalOrderBadge");
+      const modalSubtitle = document.getElementById("modalSubtitle");
+      const modalTxList = document.getElementById("modalTxList");
+      const modalFooterNote = document.getElementById("modalFooterNote");
+
+      const isMasuk = type === "PEMASUKAN";
+      let filtered = allTransactionsData.filter(t => (t.tipe || "").toUpperCase() === type);
+
+      if (isMasuk) {
+        modalTypeBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-emerald-950 text-emerald-400 border border-emerald-800/60";
+        modalTypeBadge.innerText = "Pemasukan";
+        modalOrderBadge.className = "text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full";
+        modalOrderBadge.innerText = "Semua Masuk";
+        modalTitle.innerText = "Rincian Seluruh Pemasukan";
+        modalFooterNote.innerText = "Daftar seluruh transaksi pemasukan tercatat";
+      } else {
+        // Wajib diurutkan dari nominal terbesar ke terkecil (descending)
+        filtered.sort((a, b) => (Math.abs(Number(b.nominal)) || 0) - (Math.abs(Number(a.nominal)) || 0));
+        modalTypeBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-rose-950 text-rose-400 border border-rose-800/60";
+        modalTypeBadge.innerText = "Pengeluaran";
+        modalOrderBadge.className = "text-[10px] text-amber-400 bg-amber-950/60 border border-amber-800/40 px-2 py-0.5 rounded-full font-medium";
+        modalOrderBadge.innerText = "Nominal Terbesar ▾";
+        modalTitle.innerText = "Rincian Seluruh Pengeluaran";
+        modalFooterNote.innerText = "Diurutkan dari pengeluaran terbesar ke terkecil";
+      }
+
+      const totalSum = filtered.reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0);
+      modalSubtitle.innerText = `Total: ${fmtIDR(totalSum)} • ${filtered.length} transaksi`;
+
+      if (filtered.length === 0) {
+        modalTxList.innerHTML = `
+          <div class="py-12 text-center text-slate-500">
+            <p class="text-2xl mb-1">📭</p>
+            <p class="text-xs">Tidak ada data transaksi ${isMasuk ? 'pemasukan' : 'pengeluaran'}.</p>
+          </div>
+        `;
+      } else {
+        let listHtml = "";
+        filtered.forEach((t, idx) => {
+          const color = isMasuk ? "text-emerald-400" : "text-rose-400";
+          const sign = isMasuk ? "+" : "-";
+
+          // Badge peringkat untuk pengeluaran terbesar
+          const rankBadge = !isMasuk ? `
+            <span class="inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-bold shrink-0 ${
+              idx === 0 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' :
+              idx === 1 ? 'bg-slate-300/20 text-slate-300 border border-slate-300/40' :
+              idx === 2 ? 'bg-amber-700/20 text-amber-600 border border-amber-700/40' :
+              'bg-slate-800 text-slate-500'
+            }">${idx + 1}</span>
+          ` : "";
+
+          listHtml += `
+            <div class="bg-slate-800/60 border border-slate-700/50 p-3 rounded-xl flex items-center justify-between text-xs hover:border-slate-600/70 transition">
+              <div class="flex items-center gap-2.5 max-w-[65%]">
+                ${rankBadge}
+                <div class="space-y-0.5 min-w-0">
+                  <p class="font-semibold text-slate-200 truncate">${t.merchant || 'Tanpa Keterangan'}</p>
+                  <p class="text-[10px] text-slate-400 truncate">${t.kategori || 'Lain-lain'} • ${t.waktu || '-'}</p>
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <p class="font-bold ${color}">${sign} ${fmtIDR(Math.abs(Number(t.nominal)) || 0)}</p>
+                <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">${t.tipe}</span>
+              </div>
+            </div>
+          `;
+        });
+        modalTxList.innerHTML = listHtml;
+      }
+
+      modal.classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeDetailModal() {
+      const modal = document.getElementById("drillDownModal");
+      modal.classList.add("hidden");
+      document.body.style.overflow = "";
+    }
+
+    function handleBackdropClick(e) {
+      if (e.target.id === "drillDownModal") {
+        closeDetailModal();
       }
     }
 
