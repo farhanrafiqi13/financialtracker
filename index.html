@@ -194,6 +194,8 @@
 
     // Global state
     let allTransactionsData = [];
+    let incomesData = [];
+    let expensesData = [];
     let expenseChart = null;
 
     // Palet warna yang serasi dengan dark mode Tailwind
@@ -249,42 +251,49 @@
         const data = await res.json();
 
         if (data.status === "success") {
-          // Sinkronisasi data transaksi lengkap (allTransactions / transactions)
-          const txs = (Array.isArray(data.allTransactions) && data.allTransactions.length > 0)
-            ? data.allTransactions
-            : (Array.isArray(data.transactions) ? data.transactions : []);
-          
-          allTransactionsData = txs;
+          // 1. Simpan array incomes & expenses untuk modal drill-down
+          incomesData = Array.isArray(data.incomes) ? data.incomes : [];
+          expensesData = Array.isArray(data.expenses) ? data.expenses : [];
 
-          // Hitung atau gunakan summary
+          // Fallback bila backend mengirim struktur data lama
+          if (incomesData.length === 0 && expensesData.length === 0) {
+            const rawList = Array.isArray(data.allTransactions) && data.allTransactions.length > 0
+              ? data.allTransactions
+              : (Array.isArray(data.transactions) ? data.transactions : []);
+            allTransactionsData = rawList;
+            incomesData = rawList.filter(t => (t.tipe || "").toUpperCase() === "PEMASUKAN");
+            expensesData = rawList.filter(t => (t.tipe || "").toUpperCase() === "PENGELUARAN");
+          } else {
+            allTransactionsData = [...incomesData, ...expensesData];
+          }
+
+          // 2. Tampilkan ringkasan (summary)
           let totalMasuk = data.summary?.pemasukan;
           let totalKeluar = data.summary?.pengeluaran;
           let netFlow = data.summary?.netFlow;
 
           if (totalMasuk === undefined || totalKeluar === undefined) {
-            totalMasuk = txs.filter(t => (t.tipe || "").toUpperCase() === "PEMASUKAN")
-                            .reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0);
-            totalKeluar = txs.filter(t => (t.tipe || "").toUpperCase() === "PENGELUARAN")
-                             .reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0);
+            totalMasuk = incomesData.reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0);
+            totalKeluar = expensesData.reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0);
             netFlow = totalMasuk - totalKeluar;
           }
 
-          const countVal = data.totalTransactions || txs.length;
+          const countVal = data.totalTransactions || (incomesData.length + expensesData.length);
           txCountEl.innerText = `${countVal} Transaksi Tersinkron`;
           document.getElementById("netFlowVal").innerText = fmtIDR(netFlow);
           document.getElementById("totalMasukVal").innerText = fmtIDR(totalMasuk);
           document.getElementById("totalKeluarVal").innerText = fmtIDR(totalKeluar);
 
-          // Render Transaksi Terbaru (tampilkan hingga 20 data)
-          const recentTxs = (Array.isArray(data.transactions) && data.transactions.length > 0)
-            ? data.transactions
-            : txs.slice(0, 20);
+          // 3. Render Transaksi Terbaru: looping array data.recentTransactions
+          const recentList = Array.isArray(data.recentTransactions) && data.recentTransactions.length > 0
+            ? data.recentTransactions
+            : (Array.isArray(data.transactions) ? data.transactions : allTransactionsData.slice(0, 20));
 
-          if (recentTxs.length === 0) {
+          if (recentList.length === 0) {
             txListEl.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">Belum ada transaksi tercatat.</div>';
           } else {
             let html = "";
-            recentTxs.forEach(t => {
+            recentList.forEach(t => {
               const isMasuk = (t.tipe || "").toUpperCase() === "PEMASUKAN";
               const color = isMasuk ? "text-emerald-400" : "text-slate-200";
               const sign = isMasuk ? "+" : "-";
@@ -297,7 +306,7 @@
                   </div>
                   <div class="text-right shrink-0">
                     <p class="font-bold ${color}">${sign} ${fmtIDR(Math.abs(Number(t.nominal)) || 0)}</p>
-                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">${t.tipe}</span>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">${t.tipe || (isMasuk ? 'PEMASUKAN' : 'PENGELUARAN')}</span>
                   </div>
                 </div>
               `;
@@ -305,8 +314,8 @@
             txListEl.innerHTML = html;
           }
 
-          // Perbarui Visualisasi Diagram Donut Pengeluaran
-          renderExpenseChart(allTransactionsData);
+          // 4. Render Donut Chart: membaca objek data.categoryBreakdown
+          renderExpenseChart(data.categoryBreakdown, expensesData);
 
         } else {
           txListEl.innerHTML = '<div class="p-4 text-center text-xs text-rose-400">Gagal memuat data dari spreadsheet.</div>';
@@ -316,21 +325,26 @@
       }
     }
 
-    // Fungsi menghitung akumulasi kategori & merender Donut Chart
-    function renderExpenseChart(transactions) {
-      const expenseTxs = transactions.filter(t => (t.tipe || "").toUpperCase() === "PENGELUARAN");
-      const categoryMap = {};
+    // Fungsi membaca objek data.categoryBreakdown & merender Donut Chart Chart.js
+    function renderExpenseChart(categoryBreakdown, expensesFallback) {
+      let categoryMap = {};
 
-      expenseTxs.forEach(t => {
-        const cat = (t.kategori && t.kategori.trim()) ? t.kategori.trim() : "Lain-lain";
-        const nom = Math.abs(Number(t.nominal)) || 0;
-        categoryMap[cat] = (categoryMap[cat] || 0) + nom;
-      });
+      if (categoryBreakdown && typeof categoryBreakdown === "object" && Object.keys(categoryBreakdown).length > 0) {
+        // Menggunakan data.categoryBreakdown (keys sebagai label, values sebagai nominal)
+        categoryMap = { ...categoryBreakdown };
+      } else if (Array.isArray(expensesFallback) && expensesFallback.length > 0) {
+        // Fallback akumulasi manual jika categoryBreakdown kosong
+        expensesFallback.forEach(t => {
+          const cat = (t.kategori && t.kategori.trim()) ? t.kategori.trim() : "Lain-lain";
+          const nom = Math.abs(Number(t.nominal)) || 0;
+          categoryMap[cat] = (categoryMap[cat] || 0) + nom;
+        });
+      }
 
-      // Urutkan kategori berdasarkan akumulasi nominal terbesar
-      const sortedCategories = Object.keys(categoryMap).sort((a, b) => categoryMap[b] - categoryMap[a]);
+      // Urutkan kategori berdasarkan nominal terbesar ke terkecil
+      const sortedCategories = Object.keys(categoryMap).sort((a, b) => Number(categoryMap[b]) - Number(categoryMap[a]));
       const chartLabels = sortedCategories;
-      const chartData = sortedCategories.map(cat => categoryMap[cat]);
+      const chartData = sortedCategories.map(cat => Math.abs(Number(categoryMap[cat])) || 0);
       const totalExpense = chartData.reduce((acc, curr) => acc + curr, 0);
 
       document.getElementById("chartTotalExpense").innerText = fmtIDR(totalExpense);
@@ -344,7 +358,7 @@
       } else {
         let listHtml = "";
         sortedCategories.forEach((cat, idx) => {
-          const val = categoryMap[cat];
+          const val = chartData[idx];
           const pct = totalExpense > 0 ? ((val / totalExpense) * 100).toFixed(1) : "0.0";
           const color = backgroundColors[idx];
 
@@ -364,7 +378,7 @@
         breakdownEl.innerHTML = listHtml;
       }
 
-      // Update Chart.js
+      // Update Chart.js Donut
       const canvas = document.getElementById("expenseDonutChart");
       const ctx = canvas.getContext("2d");
 
@@ -413,7 +427,7 @@
       });
     }
 
-    // Modal Drill-down (Detail Masuk / Detail Keluar)
+    // Modal Drill-down: me-looping data.incomes untuk Total Masuk, dan data.expenses untuk Total Keluar
     function openDetailModal(type) {
       const modal = document.getElementById("drillDownModal");
       const modalTitle = document.getElementById("modalTitle");
@@ -424,7 +438,12 @@
       const modalFooterNote = document.getElementById("modalFooterNote");
 
       const isMasuk = type === "PEMASUKAN";
-      let filtered = allTransactionsData.filter(t => (t.tipe || "").toUpperCase() === type);
+      let list = isMasuk ? incomesData : expensesData;
+
+      // Fallback bila incomesData/expensesData kosong tetapi allTransactionsData ada
+      if ((!list || list.length === 0) && allTransactionsData.length > 0) {
+        list = allTransactionsData.filter(t => (t.tipe || "").toUpperCase() === type);
+      }
 
       if (isMasuk) {
         modalTypeBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-emerald-950 text-emerald-400 border border-emerald-800/60";
@@ -434,8 +453,8 @@
         modalTitle.innerText = "Rincian Seluruh Pemasukan";
         modalFooterNote.innerText = "Daftar seluruh transaksi pemasukan tercatat";
       } else {
-        // Wajib diurutkan dari nominal terbesar ke terkecil (descending)
-        filtered.sort((a, b) => (Math.abs(Number(b.nominal)) || 0) - (Math.abs(Number(a.nominal)) || 0));
+        // Backend sudah mengurutkan terbesar ke terkecil, dipastikan tetap konsisten
+        list = [...list].sort((a, b) => (Math.abs(Number(b.nominal)) || 0) - (Math.abs(Number(a.nominal)) || 0));
         modalTypeBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-rose-950 text-rose-400 border border-rose-800/60";
         modalTypeBadge.innerText = "Pengeluaran";
         modalOrderBadge.className = "text-[10px] text-amber-400 bg-amber-950/60 border border-amber-800/40 px-2 py-0.5 rounded-full font-medium";
@@ -444,10 +463,10 @@
         modalFooterNote.innerText = "Diurutkan dari pengeluaran terbesar ke terkecil";
       }
 
-      const totalSum = filtered.reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0);
-      modalSubtitle.innerText = `Total: ${fmtIDR(totalSum)} • ${filtered.length} transaksi`;
+      const totalSum = list.reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0);
+      modalSubtitle.innerText = `Total: ${fmtIDR(totalSum)} • ${list.length} transaksi`;
 
-      if (filtered.length === 0) {
+      if (list.length === 0) {
         modalTxList.innerHTML = `
           <div class="py-12 text-center text-slate-500">
             <p class="text-2xl mb-1">📭</p>
@@ -456,7 +475,7 @@
         `;
       } else {
         let listHtml = "";
-        filtered.forEach((t, idx) => {
+        list.forEach((t, idx) => {
           const color = isMasuk ? "text-emerald-400" : "text-rose-400";
           const sign = isMasuk ? "+" : "-";
 
@@ -481,7 +500,7 @@
               </div>
               <div class="text-right shrink-0">
                 <p class="font-bold ${color}">${sign} ${fmtIDR(Math.abs(Number(t.nominal)) || 0)}</p>
-                <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">${t.tipe}</span>
+                <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">${t.tipe || (isMasuk ? 'PEMASUKAN' : 'PENGELUARAN')}</span>
               </div>
             </div>
           `;

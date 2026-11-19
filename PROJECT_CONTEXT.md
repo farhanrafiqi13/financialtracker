@@ -25,7 +25,10 @@ Tabel transaksi memiliki 7 kolom:
   - `status`: "success"
   - `totalTransactions`: Total baris transaksi
   - `summary`: { pemasukan, pengeluaran, netFlow }
-  - `transactions`: Array 20 transaksi terbaru
+  - `categoryBreakdown`: Objek akumulasi nominal per kategori { "Makanan & Minuman": 123456, ... }
+  - `expenses`: Array seluruh transaksi pengeluaran (diurutkan terbesar ke terkecil)
+  - `incomes`: Array seluruh transaksi pemasukan
+  - `recentTransactions`: Array 20 transaksi terbaru
 - **POST Request (`doPost`)**: Menerima payload JSON `{ time, app, text }`, di-parse oleh Gemini API, lalu di-append ke Google Sheets.
 
 ## Development Rules
