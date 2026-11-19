@@ -335,18 +335,19 @@
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     };
 
-    // Helper identifikasi bank (Mandiri vs BRI)
-    function getExpenseItemBank(item) {
-      const str = `${item.aplikasi || ''} ${item.app || ''} ${item.bank || ''} ${item.pesan || ''} ${item.merchant || ''}`.toLowerCase();
-      if (str.includes("bri") || str.includes("brimo")) return "bri";
-      if (str.includes("mandiri") || str.includes("livin")) return "mandiri";
-      return "mandiri";
+    // Helper identifikasi bank — WAJIB mengacu ke item.aplikasi SAJA
+    function isMandiri(item) {
+      const app = String(item.aplikasi || "").trim().toLowerCase();
+      return app.includes("mandiri") || app.includes("livin");
+    }
+    function isBRI(item) {
+      const app = String(item.aplikasi || "").trim().toLowerCase();
+      return app.includes("bri") || app.includes("brimo");
     }
 
     // Helper badge Bank (Mandiri vs BRI)
     function getBankBadge(t) {
-      const bank = getExpenseItemBank(t);
-      if (bank === "bri") {
+      if (isBRI(t)) {
         return '<span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-300 border border-blue-800/60 font-semibold tracking-wide">🔵 BRI</span>';
       }
       return '<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-800/60 font-semibold tracking-wide">🏛️ Mandiri</span>';
@@ -437,9 +438,9 @@
         : ((window.flowSyncData?.expenses || []).map(normalizeExpenseItem));
 
       if (bankFilter === "mandiri") {
-        return allExpenses.filter(item => getExpenseItemBank(item) === "mandiri");
+        return allExpenses.filter(item => isMandiri(item));
       } else if (bankFilter === "bri") {
-        return allExpenses.filter(item => getExpenseItemBank(item) === "bri");
+        return allExpenses.filter(item => isBRI(item));
       }
       return allExpenses;
     }
