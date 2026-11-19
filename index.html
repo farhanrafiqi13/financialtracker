@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>FlowSync Finance</title>
   <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#020617">
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js CDN -->
@@ -18,57 +18,86 @@
       height: 5px;
     }
     ::-webkit-scrollbar-track {
-      background: rgba(15, 23, 42, 0.6);
+      background: rgba(2, 6, 23, 0.7);
     }
     ::-webkit-scrollbar-thumb {
-      background: rgba(51, 65, 85, 0.8);
+      background: rgba(30, 41, 59, 0.9);
       border-radius: 9999px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(71, 85, 105, 1);
+      background: rgba(51, 65, 85, 1);
     }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
 
   <!-- Header -->
-  <header class="p-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-20 flex justify-between items-center">
+  <header class="p-4 border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-20 flex justify-between items-center">
     <div>
-      <h1 class="text-lg font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">FlowSync</h1>
+      <h1 class="text-lg font-bold bg-gradient-to-r from-blue-400 via-teal-300 to-emerald-400 bg-clip-text text-transparent">FlowSync</h1>
       <p class="text-xs text-slate-400" id="txCount">Memuat data...</p>
     </div>
-    <button onclick="fetchDataFromSheets()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-medium rounded-lg border border-slate-700 flex items-center gap-1.5 transition">
-      <span>🔄 Refresh</span>
+    <button onclick="fetchDataFromSheets(true)" id="btnRefresh" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-xs font-medium rounded-xl border border-slate-800 flex items-center gap-1.5 transition text-slate-200">
+      <span id="refreshIcon" class="inline-block transition-transform text-sm">🔄</span>
+      <span id="refreshText">Refresh</span>
     </button>
   </header>
 
   <!-- Konten Utama -->
   <main class="p-4 flex-1 max-w-md mx-auto w-full space-y-4">
 
-    <!-- 1. Struktur Kartu Utama (Hero Balance & Flow) -->
-    <section class="bg-gradient-to-br from-slate-800 to-slate-800/60 p-4 rounded-2xl border border-slate-700/60 shadow-lg space-y-3.5">
-      <!-- Saldo Rekening Saat Ini -->
+    <!-- 1. Struktur Kartu Utama (Hero Balance & Multi-Bank Breakdown) -->
+    <section class="bg-gradient-to-br from-slate-900 via-slate-900/90 to-slate-950 p-4 rounded-2xl border border-slate-800 shadow-xl space-y-3.5">
+      
+      <!-- Total Saldo Likuid (Paling Atas) -->
       <div>
         <div class="flex items-center justify-between text-xs font-medium text-slate-400 mb-1">
-          <span>Saldo Rekening Saat Ini</span>
-          <span class="text-[10px] text-slate-500 bg-slate-900/40 px-2 py-0.5 rounded-full border border-slate-700/40">Livin' by Mandiri</span>
+          <span class="tracking-wide uppercase text-[10px] font-semibold text-slate-400">Total Saldo Likuid</span>
+          <span class="text-[10px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700/60">Mandiri + BRI</span>
         </div>
-        <h2 id="saldoUtamaVal" class="text-3xl font-extrabold text-white tracking-tight">Rp 0</h2>
-        
-        <!-- Badge Net Flow -->
-        <div class="mt-2.5 flex items-center">
-          <span id="netFlowBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-900/60 border border-slate-700/60 text-slate-300">
-            <span>Net Flow:</span>
+        <div class="flex items-baseline justify-between flex-wrap gap-2">
+          <h2 id="saldoTotalVal" class="text-3xl font-extrabold text-white tracking-tight">Rp 0</h2>
+          
+          <!-- Badge Net Flow -->
+          <div id="netFlowBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-300">
+            <span class="text-[10px] text-slate-400 uppercase font-medium">Net Flow:</span>
             <span id="netFlowVal" class="font-bold">Rp 0</span>
-          </span>
+          </div>
         </div>
       </div>
 
-      <!-- Grid 2 Kolom: Total Masuk & Total Keluar -->
-      <div class="grid grid-cols-2 gap-2 pt-2.5 border-t border-slate-700/50 text-xs">
-        <!-- Kartu Total Masuk (Drill-Down Trigger) -->
+      <!-- Sub-Kartu Saldo Terpisah (Mandiri vs BRI) -->
+      <div class="grid grid-cols-2 gap-2 pt-1 text-xs">
+        <!-- Kartu Bank Mandiri -->
+        <div class="bg-gradient-to-br from-amber-950/25 to-slate-900/90 border border-amber-600/30 p-3 rounded-xl flex flex-col justify-between shadow-sm">
+          <div class="flex items-center justify-between mb-1.5">
+            <div class="flex items-center gap-1.5 font-semibold text-amber-400">
+              <span class="text-sm">🏛️</span>
+              <span class="tracking-wide">Mandiri</span>
+            </div>
+            <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">Livin'</span>
+          </div>
+          <p id="saldoMandiriVal" class="text-base font-bold text-slate-100 tracking-tight mt-0.5">Rp 0</p>
+        </div>
+
+        <!-- Kartu Bank BRI -->
+        <div class="bg-gradient-to-br from-blue-950/25 to-slate-900/90 border border-blue-600/30 p-3 rounded-xl flex flex-col justify-between shadow-sm">
+          <div class="flex items-center justify-between mb-1.5">
+            <div class="flex items-center gap-1.5 font-semibold text-blue-400">
+              <span class="text-sm">🔵</span>
+              <span class="tracking-wide">BRImo</span>
+            </div>
+            <span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 font-mono">BRI</span>
+          </div>
+          <p id="saldoBRIVal" class="text-base font-bold text-slate-100 tracking-tight mt-0.5">Rp 0</p>
+        </div>
+      </div>
+
+      <!-- Tombol Ringkasan Interaktif (Grid 2 Kolom) -->
+      <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 text-xs">
+        <!-- Kartu Total Masuk -->
         <button type="button" onclick="openDetailModal('PEMASUKAN')"
-          class="text-left bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-900/50 hover:border-emerald-600/70 p-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 group focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          class="text-left bg-emerald-950/30 hover:bg-emerald-900/40 border border-emerald-900/50 hover:border-emerald-600/70 p-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 group focus:outline-none focus:ring-1 focus:ring-emerald-500">
           <div class="flex items-center justify-between">
             <span class="text-emerald-400 font-semibold flex items-center gap-1">Total Masuk</span>
             <span class="text-emerald-400/70 group-hover:text-emerald-300 text-xs transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">↗</span>
@@ -77,9 +106,9 @@
           <span class="inline-block text-[10px] text-emerald-400/80 mt-1 font-medium">Lihat Detail ▾</span>
         </button>
 
-        <!-- Kartu Total Keluar (Drill-Down Trigger) -->
+        <!-- Kartu Total Keluar -->
         <button type="button" onclick="openDetailModal('PENGELUARAN')"
-          class="text-left bg-rose-950/40 hover:bg-rose-900/40 border border-rose-900/50 hover:border-rose-600/70 p-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 group focus:outline-none focus:ring-1 focus:ring-rose-500">
+          class="text-left bg-rose-950/30 hover:bg-rose-900/40 border border-rose-900/50 hover:border-rose-600/70 p-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 group focus:outline-none focus:ring-1 focus:ring-rose-500">
           <div class="flex items-center justify-between">
             <span class="text-rose-400 font-semibold flex items-center gap-1">Total Keluar</span>
             <span class="text-rose-400/70 group-hover:text-rose-300 text-xs transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">↗</span>
@@ -88,14 +117,60 @@
           <span class="inline-block text-[10px] text-rose-400/80 mt-1 font-medium">Urutan Terbesar ▾</span>
         </button>
       </div>
+
     </section>
 
-    <!-- 2. Section Diagram Donut Pengeluaran (Chart.js) & Daftar Kategori Interaktif -->
-    <section class="bg-gradient-to-br from-slate-800/80 to-slate-800/40 p-4 rounded-2xl border border-slate-700/60 shadow-lg space-y-3">
+    <!-- 2. Form Input Manual Transaksi Baru (Pilihan Sumber Rekening) -->
+    <details class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden group shadow-lg">
+      <summary class="p-3.5 text-xs font-semibold text-slate-300 cursor-pointer flex justify-between items-center select-none hover:bg-slate-800/40 transition">
+        <span class="flex items-center gap-1.5">
+          <span>➕</span>
+          <span>Input Transaksi Baru</span>
+        </span>
+        <span class="text-slate-500 group-open:rotate-180 transition-transform">▼</span>
+      </summary>
+      <div class="p-4 pt-1 space-y-3.5 border-t border-slate-800/60">
+        
+        <!-- Pilihan Sumber Dana / Rekening -->
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1.5">Sumber Dana / Rekening:</label>
+          <div class="grid grid-cols-2 gap-2" id="sourceAccountToggle">
+            <!-- Pilihan Livin' Mandiri -->
+            <button type="button" onclick="selectSourceAccount('Livin\' by Mandiri')" id="btnSourceMandiri"
+              class="py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all bg-amber-500/20 border-amber-500/80 text-amber-300 shadow-sm ring-1 ring-amber-500/40">
+              <span class="text-sm">🏛️</span>
+              <span>Livin' Mandiri</span>
+            </button>
+            <!-- Pilihan BRImo -->
+            <button type="button" onclick="selectSourceAccount('BRImo')" id="btnSourceBRI"
+              class="py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200">
+              <span class="text-sm">🔵</span>
+              <span>BRImo</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Input Textarea Catatan Transaksi -->
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Catatan Transaksi:</label>
+          <textarea id="notifInput" rows="2" placeholder="Contoh: Kopi Nako Rp 35.000 QRIS"
+            class="w-full bg-slate-950 border border-slate-700/80 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"></textarea>
+        </div>
+
+        <button onclick="kirimTransaksi()" id="btnKirim"
+          class="w-full py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 font-semibold rounded-xl text-xs text-white shadow-md transition active:scale-95">
+          Simpan Transaksi ke Sheets
+        </button>
+        <p id="statusMsg" class="text-[11px] text-center hidden"></p>
+      </div>
+    </details>
+
+    <!-- 3. Section Diagram Donut Pengeluaran (Chart.js) & Daftar Kategori Interaktif -->
+    <section class="bg-gradient-to-br from-slate-900/90 to-slate-900/50 p-4 rounded-2xl border border-slate-800 shadow-lg space-y-3">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Komposisi Pengeluaran</h3>
-          <p class="text-[10px] text-slate-400">Ketuk irisan chart atau daftar kategori untuk rincian</p>
+          <p class="text-[10px] text-slate-400">Ketuk irisan grafik atau kategori untuk drill-down</p>
         </div>
         <span id="chartTotalExpense" class="text-xs font-bold text-rose-400">Rp 0</span>
       </div>
@@ -110,7 +185,7 @@
       </div>
 
       <!-- Legend & Daftar Kategori Interaktif -->
-      <div class="space-y-1 pt-2 border-t border-slate-700/50">
+      <div class="space-y-1 pt-2 border-t border-slate-800">
         <div class="flex justify-between items-center text-[10px] text-slate-400 uppercase font-semibold pb-1">
           <span>Kategori (Klik untuk rincian)</span>
           <span>Nominal & %</span>
@@ -121,38 +196,24 @@
       </div>
     </section>
 
-    <!-- 3. Form Input Transaksi Baru -->
-    <details class="bg-slate-800/40 border border-slate-800 rounded-xl overflow-hidden group">
-      <summary class="p-3 text-xs font-semibold text-slate-300 cursor-pointer flex justify-between items-center select-none">
-        <span>➕ Input Transaksi Baru</span>
-        <span class="text-slate-500 group-open:rotate-180 transition-transform">▼</span>
-      </summary>
-      <div class="p-3 pt-0 space-y-2">
-        <textarea id="notifInput" rows="2" placeholder="Contoh: Kopi Nako Rp 35.000 QRIS"
-          class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"></textarea>
-        <button onclick="kirimTransaksi()" id="btnKirim"
-          class="w-full py-2 bg-blue-600 hover:bg-blue-500 font-medium rounded-lg text-xs transition">
-          Kirim ke Sheets
-        </button>
-        <p id="statusMsg" class="text-[11px] text-center hidden"></p>
-      </div>
-    </details>
-
-    <!-- 4. Daftar Transaksi Terbaru -->
+    <!-- 4. Daftar 20 Transaksi Terbaru -->
     <section class="space-y-2">
-      <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Transaksi Terbaru</h3>
+      <div class="flex justify-between items-center">
+        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">20 Transaksi Terbaru</h3>
+        <span class="text-[10px] text-slate-500">Live Feed</span>
+      </div>
       <div id="txList" class="space-y-2">
         <div class="p-4 text-center text-xs text-slate-500">Menghubungkan ke Google Sheets...</div>
       </div>
     </section>
 
     <!-- 5. Pengaturan Web App URL -->
-    <details class="bg-slate-800/20 border border-slate-800/60 rounded-xl">
+    <details class="bg-slate-900/40 border border-slate-800/80 rounded-xl">
       <summary class="p-3 text-[11px] text-slate-500 cursor-pointer select-none">Pengaturan Web App URL</summary>
       <div class="p-3 pt-0 space-y-2">
         <input type="password" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec"
-          class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200">
-        <button onclick="simpanUrl()" class="w-full py-1.5 bg-slate-700 rounded-lg text-xs font-medium text-slate-300">
+          class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
+        <button onclick="simpanUrl()" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium text-slate-300">
           Simpan URL
         </button>
       </div>
@@ -162,7 +223,7 @@
 
   <!-- Modal Drill-Down (Total Masuk / Total Keluar) -->
   <div id="drillDownModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex flex-col justify-end sm:justify-center p-0 sm:p-4 transition-opacity duration-200" onclick="handleBackdropClick(event)">
-    <div class="w-full max-w-md mx-auto bg-slate-900 border border-slate-700/80 rounded-t-3xl sm:rounded-2xl max-h-[85vh] sm:max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+    <div class="w-full max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-2xl max-h-[85vh] sm:max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
       
       <!-- Modal Header -->
       <div class="p-4 border-b border-slate-800 flex justify-between items-start bg-slate-900/95 sticky top-0 z-10">
@@ -197,7 +258,7 @@
 
   <!-- Modal Rincian Transaksi per Kategori (Drill-Down Category) -->
   <div id="categoryModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex flex-col justify-end sm:justify-center p-0 sm:p-4 transition-opacity duration-200" onclick="handleCategoryBackdropClick(event)">
-    <div class="w-full max-w-md mx-auto bg-slate-900 border border-slate-700/80 rounded-t-3xl sm:rounded-2xl max-h-[85vh] sm:max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+    <div class="w-full max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-2xl max-h-[85vh] sm:max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
       
       <!-- Modal Header -->
       <div class="p-4 border-b border-slate-800 flex justify-between items-start bg-slate-900/95 sticky top-0 z-10">
@@ -239,11 +300,43 @@
     // Helper format mata uang IDR
     const fmtIDR = (num) => "Rp " + Math.round(num || 0).toLocaleString("id-ID");
 
+    // Helper format waktu DD/MM/YYYY HH:mm:ss
+    function getFormattedNow() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const day = pad(d.getDate());
+      const month = pad(d.getMonth() + 1);
+      const year = d.getFullYear();
+      const hours = pad(d.getHours());
+      const minutes = pad(d.getMinutes());
+      const seconds = pad(d.getSeconds());
+      return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+    }
+
     // Helper sanitasi HTML string
     const escapeHtml = (str) => {
       if (!str) return '';
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     };
+
+    // Helper penentu badge Bank (Mandiri vs BRI)
+    function getBankBadge(t) {
+      const str = `${t.app || ''} ${t.aplikasi || ''} ${t.bank || ''} ${t.merchant || ''} ${t.pesan || ''}`.toUpperCase();
+      if (str.includes("BRI") || str.includes("BRIMO")) {
+        return '<span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-300 border border-blue-800/60 font-semibold tracking-wide">🔵 BRI</span>';
+      }
+      return '<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-800/60 font-semibold tracking-wide">🏛️ Mandiri</span>';
+    }
+
+    // Aturan Pos Kategori: Transaksi terkait "Bank Permata" atau "RDN" otomatis masuk pos "Investasi & Tabungan"
+    function normalizeExpenseItem(t) {
+      const str = `${t.merchant || ''} ${t.text || ''} ${t.kategori || ''} ${t.pesan || ''}`.toUpperCase();
+      let cat = (t.kategori && t.kategori.trim()) ? t.kategori.trim() : "Lain-lain";
+      if (str.includes("PERMATA") || str.includes("BANK PERMATA") || str.includes("RDN")) {
+        cat = "Investasi & Tabungan";
+      }
+      return { ...t, kategori: cat };
+    }
 
     // Global state & Cache
     window.flowSyncData = null;
@@ -251,6 +344,7 @@
     let incomesData = [];
     let expensesData = [];
     let expenseChart = null;
+    let selectedSourceAccount = "Livin' by Mandiri";
 
     // Palet warna dark mode Tailwind
     const chartPalette = [
@@ -271,7 +365,7 @@
       const savedUrl = localStorage.getItem("gas_webhook_url");
       if (savedUrl) {
         document.getElementById("gasUrlInput").value = savedUrl;
-        fetchDataFromSheets();
+        fetchDataFromSheets(false);
       } else {
         document.getElementById("txList").innerHTML = 
           '<div class="p-4 text-center text-xs text-amber-400">Harap masukkan dan simpan Web App URL di menu Pengaturan bawah.</div>';
@@ -288,51 +382,83 @@
       });
     });
 
+    // Pilihan Sumber Dana Transaksi
+    function selectSourceAccount(account) {
+      selectedSourceAccount = account;
+      const btnMandiri = document.getElementById("btnSourceMandiri");
+      const btnBRI = document.getElementById("btnSourceBRI");
+
+      if (account === "Livin' by Mandiri") {
+        btnMandiri.className = "py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all bg-amber-500/20 border-amber-500/80 text-amber-300 shadow-sm ring-1 ring-amber-500/40";
+        btnBRI.className = "py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200";
+      } else {
+        btnBRI.className = "py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all bg-blue-500/20 border-blue-500/80 text-blue-300 shadow-sm ring-1 ring-blue-500/40";
+        btnMandiri.className = "py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200";
+      }
+    }
+
     function simpanUrl() {
       const url = document.getElementById("gasUrlInput").value.trim();
       if (!url) return alert("URL tidak boleh kosong!");
       localStorage.setItem("gas_webhook_url", url);
       alert("URL tersimpan! Memuat data...");
-      fetchDataFromSheets();
+      fetchDataFromSheets(false);
     }
 
-    async function fetchDataFromSheets() {
+    async function fetchDataFromSheets(isRefresh = false) {
       const url = localStorage.getItem("gas_webhook_url");
       if (!url) return;
 
       const txListEl = document.getElementById("txList");
       const txCountEl = document.getElementById("txCount");
+      const refreshIcon = document.getElementById("refreshIcon");
+      const refreshText = document.getElementById("refreshText");
+
+      if (isRefresh) {
+        refreshIcon.classList.add("animate-spin");
+        refreshText.innerText = "Sinkron...";
+      }
 
       try {
-        const res = await fetch(url);
+        // Jika tombol refresh ditekan, panggil endpoint dengan ?syncGmail=true
+        const sep = url.includes("?") ? "&" : "?";
+        const fetchUrl = isRefresh ? `${url}${sep}syncGmail=true` : url;
+
+        const res = await fetch(fetchUrl);
         const data = await res.json();
 
         if (data.status === "success") {
-          // Simpan ke state global window.flowSyncData
           window.flowSyncData = data;
 
-          // 1. Inisialisasi incomes & expenses
-          incomesData = Array.isArray(data.incomes) ? data.incomes : [];
-          expensesData = Array.isArray(data.expenses) ? data.expenses : [];
+          // 1. Inisialisasi incomes & expenses dengan normalisasi kategori Permata/RDN
+          const rawExpenses = Array.isArray(data.expenses) ? data.expenses : [];
+          expensesData = rawExpenses.map(normalizeExpenseItem);
 
-          // Fallback jika backend lama (allTransactions / transactions)
+          const rawIncomes = Array.isArray(data.incomes) ? data.incomes : [];
+          incomesData = rawIncomes;
+
+          // Fallback bila backend data lama
           if (incomesData.length === 0 && expensesData.length === 0) {
             const rawList = Array.isArray(data.allTransactions) && data.allTransactions.length > 0
               ? data.allTransactions
               : (Array.isArray(data.transactions) ? data.transactions : []);
             allTransactionsData = rawList;
             incomesData = rawList.filter(t => (t.tipe || "").toUpperCase() === "PEMASUKAN");
-            expensesData = rawList.filter(t => (t.tipe || "").toUpperCase() === "PENGELUARAN");
+            expensesData = rawList.filter(t => (t.tipe || "").toUpperCase() === "PENGELUARAN").map(normalizeExpenseItem);
           } else {
             allTransactionsData = [...incomesData, ...expensesData];
           }
 
-          // 2. Render Hero Balance & Flow
-          const saldoVal = data.summary?.saldoSaatIni !== undefined 
-            ? data.summary.saldoSaatIni 
-            : (data.summary?.saldo !== undefined ? data.summary.saldo : (data.summary?.netFlow ?? 0));
+          // 2. Render Hero Balance & Multi-Bank Breakdown
+          const saldoMandiri = Number(data.summary?.saldoMandiri ?? (data.summary?.saldoSaatIni ?? 0));
+          const saldoBRI = Number(data.summary?.saldoBRI ?? 0);
+          const saldoTotal = data.summary?.saldoTotal !== undefined 
+            ? Number(data.summary.saldoTotal) 
+            : (saldoMandiri + saldoBRI);
 
-          document.getElementById("saldoUtamaVal").innerText = fmtIDR(saldoVal);
+          document.getElementById("saldoTotalVal").innerText = fmtIDR(saldoTotal);
+          document.getElementById("saldoMandiriVal").innerText = fmtIDR(saldoMandiri);
+          document.getElementById("saldoBRIVal").innerText = fmtIDR(saldoBRI);
 
           let totalMasuk = data.summary?.pemasukan;
           let totalKeluar = data.summary?.pengeluaran;
@@ -347,7 +473,7 @@
           document.getElementById("totalMasukVal").innerText = fmtIDR(totalMasuk);
           document.getElementById("totalKeluarVal").innerText = fmtIDR(totalKeluar);
 
-          // Update Net Flow Badge
+          // Update Net Flow Badge (hijau jika >= 0, merah jika < 0)
           const netFlowBadge = document.getElementById("netFlowBadge");
           const netFlowValEl = document.getElementById("netFlowVal");
           if (netFlow >= 0) {
@@ -361,7 +487,7 @@
           const countVal = data.totalTransactions || (incomesData.length + expensesData.length);
           txCountEl.innerText = `${countVal} Transaksi Tersinkron`;
 
-          // 3. Render Transaksi Terbaru: membaca data.recentTransactions
+          // 3. Render Feed 20 Transaksi Terbaru dengan Badge Bank
           const recentList = Array.isArray(data.recentTransactions) && data.recentTransactions.length > 0
             ? data.recentTransactions
             : (Array.isArray(data.transactions) ? data.transactions : allTransactionsData.slice(0, 20));
@@ -370,20 +496,25 @@
             txListEl.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">Belum ada transaksi tercatat.</div>';
           } else {
             let html = "";
-            recentList.forEach(t => {
+            recentList.slice(0, 20).forEach(rawT => {
+              const t = normalizeExpenseItem(rawT);
               const isMasuk = (t.tipe || "").toUpperCase() === "PEMASUKAN";
-              const color = isMasuk ? "text-emerald-400" : "text-slate-200";
+              const color = isMasuk ? "text-emerald-400" : "text-slate-100";
               const sign = isMasuk ? "+" : "-";
+              const bankBadge = getBankBadge(t);
 
               html += `
-                <div class="bg-slate-800/60 border border-slate-700/50 p-3 rounded-xl flex justify-between items-center text-xs hover:border-slate-600/70 transition">
-                  <div class="space-y-0.5 max-w-[65%]">
-                    <p class="font-semibold text-slate-200 truncate">${escapeHtml(t.merchant || 'Tanpa Keterangan')}</p>
+                <div class="bg-slate-900/80 border border-slate-800/90 p-3 rounded-xl flex justify-between items-center text-xs hover:border-slate-700 transition shadow-sm">
+                  <div class="space-y-1 max-w-[65%]">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <p class="font-semibold text-slate-100 truncate">${escapeHtml(t.merchant || 'Tanpa Keterangan')}</p>
+                      ${bankBadge}
+                    </div>
                     <p class="text-[10px] text-slate-400 truncate">${escapeHtml(t.kategori || 'Lain-lain')} • ${escapeHtml(t.waktu || '-')}</p>
                   </div>
                   <div class="text-right shrink-0">
                     <p class="font-bold ${color}">${sign} ${fmtIDR(Math.abs(Number(t.nominal)) || 0)}</p>
-                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">${escapeHtml(t.tipe || (isMasuk ? 'PEMASUKAN' : 'PENGELUARAN'))}</span>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">${escapeHtml(t.tipe || (isMasuk ? 'PEMASUKAN' : 'PENGELUARAN'))}</span>
                   </div>
                 </div>
               `;
@@ -399,21 +530,25 @@
         }
       } catch (err) {
         txListEl.innerHTML = `<div class="p-4 text-center text-xs text-rose-400">Error koneksi: ${err.message}</div>`;
+      } finally {
+        refreshIcon.classList.remove("animate-spin");
+        refreshText.innerText = "Refresh";
       }
     }
 
-    // Fungsi membaca objek data.categoryBreakdown & merender Donut Chart interaktif
-    function renderExpenseChart(categoryBreakdown, expensesFallback) {
+    // Fungsi menghitung akumulasi kategori & merender Donut Chart interaktif
+    function renderExpenseChart(categoryBreakdown, expensesList) {
       let categoryMap = {};
 
-      if (categoryBreakdown && typeof categoryBreakdown === "object" && Object.keys(categoryBreakdown).length > 0) {
-        categoryMap = { ...categoryBreakdown };
-      } else if (Array.isArray(expensesFallback) && expensesFallback.length > 0) {
-        expensesFallback.forEach(t => {
-          const cat = (t.kategori && t.kategori.trim()) ? t.kategori.trim() : "Lain-lain";
+      // Akumulasikan langsung dari expensesList agar aturan Permata/RDN selalu konsisten
+      if (Array.isArray(expensesList) && expensesList.length > 0) {
+        expensesList.forEach(t => {
+          const cat = t.kategori || "Lain-lain";
           const nom = Math.abs(Number(t.nominal)) || 0;
           categoryMap[cat] = (categoryMap[cat] || 0) + nom;
         });
+      } else if (categoryBreakdown && typeof categoryBreakdown === "object" && Object.keys(categoryBreakdown).length > 0) {
+        categoryMap = { ...categoryBreakdown };
       }
 
       // Urutkan kategori berdasarkan nominal terbesar ke terkecil
@@ -439,7 +574,7 @@
 
           listHtml += `
             <button type="button" onclick="openCategoryModal('${escapeHtml(cat)}')"
-              class="w-full text-left flex items-center justify-between py-2 px-2.5 rounded-xl bg-slate-800/40 hover:bg-slate-800/80 active:scale-[0.98] border border-transparent hover:border-slate-700/60 transition-all text-xs group">
+              class="w-full text-left flex items-center justify-between py-2 px-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 active:scale-[0.98] border border-transparent hover:border-slate-700/60 transition-all text-xs group">
               <div class="flex items-center gap-2 min-w-0 pr-2">
                 <span class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color: ${color}"></span>
                 <span class="font-medium text-slate-200 group-hover:text-white truncate">${escapeHtml(cat)}</span>
@@ -474,7 +609,7 @@
           datasets: [{
             data: chartData,
             backgroundColor: backgroundColors,
-            borderColor: "#0f172a",
+            borderColor: "#020617",
             borderWidth: 2,
             hoverOffset: 6
           }]
@@ -498,7 +633,7 @@
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: "#1e293b",
+              backgroundColor: "#0f172a",
               titleColor: "#f1f5f9",
               bodyColor: "#cbd5e1",
               borderColor: "#334155",
@@ -518,7 +653,7 @@
       });
     }
 
-    // Modal Drill-down: me-looping data.incomes untuk Total Masuk, dan data.expenses untuk Total Keluar
+    // Modal Drill-down: Total Masuk & Total Keluar
     function openDetailModal(type) {
       const modal = document.getElementById("drillDownModal");
       const modalTitle = document.getElementById("modalTitle");
@@ -529,7 +664,7 @@
       const modalFooterNote = document.getElementById("modalFooterNote");
 
       const isMasuk = type === "PEMASUKAN";
-      let list = isMasuk ? (window.flowSyncData?.incomes || incomesData) : (window.flowSyncData?.expenses || expensesData);
+      let list = isMasuk ? (window.flowSyncData?.incomes || incomesData) : (expensesData || window.flowSyncData?.expenses);
 
       // Fallback bila incomesData/expensesData kosong tetapi allTransactionsData ada
       if ((!list || list.length === 0) && allTransactionsData.length > 0) {
@@ -566,9 +701,11 @@
         `;
       } else {
         let listHtml = "";
-        list.forEach((t, idx) => {
+        list.forEach((rawT, idx) => {
+          const t = normalizeExpenseItem(rawT);
           const color = isMasuk ? "text-emerald-400" : "text-rose-400";
           const sign = isMasuk ? "+" : "-";
+          const bankBadge = getBankBadge(t);
 
           // Badge peringkat untuk pengeluaran terbesar
           const rankBadge = !isMasuk ? `
@@ -581,17 +718,20 @@
           ` : "";
 
           listHtml += `
-            <div class="bg-slate-800/60 border border-slate-700/50 p-3 rounded-xl flex items-center justify-between text-xs hover:border-slate-600/70 transition">
+            <div class="bg-slate-900 border border-slate-800/90 p-3 rounded-xl flex items-center justify-between text-xs hover:border-slate-700 transition">
               <div class="flex items-center gap-2.5 max-w-[65%]">
                 ${rankBadge}
                 <div class="space-y-0.5 min-w-0">
-                  <p class="font-semibold text-slate-200 truncate">${escapeHtml(t.merchant || 'Tanpa Keterangan')}</p>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <p class="font-semibold text-slate-200 truncate">${escapeHtml(t.merchant || 'Tanpa Keterangan')}</p>
+                    ${bankBadge}
+                  </div>
                   <p class="text-[10px] text-slate-400 truncate">${escapeHtml(t.kategori || 'Lain-lain')} • ${escapeHtml(t.waktu || '-')}</p>
                 </div>
               </div>
               <div class="text-right shrink-0">
                 <p class="font-bold ${color}">${sign} ${fmtIDR(Math.abs(Number(t.nominal)) || 0)}</p>
-                <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">${escapeHtml(t.tipe || (isMasuk ? 'PEMASUKAN' : 'PENGELUARAN'))}</span>
+                <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">${escapeHtml(t.tipe || (isMasuk ? 'PEMASUKAN' : 'PENGELUARAN'))}</span>
               </div>
             </div>
           `;
@@ -626,25 +766,25 @@
       const catModalSubtitle = document.getElementById("catModalSubtitle");
       const catModalTxList = document.getElementById("catModalTxList");
 
-      // Filter dari data.expenses berdasarkan kategori yang dipilih
-      const allExpenses = (window.flowSyncData?.expenses) || expensesData || [];
+      // Filter dari expensesData (sudah ternormalisasi)
+      const allExpenses = expensesData.length > 0 ? expensesData : ((window.flowSyncData?.expenses || []).map(normalizeExpenseItem));
       const filtered = allExpenses.filter(t => (t.kategori || '').trim().toLowerCase() === categoryName.trim().toLowerCase());
 
       // Urutkan dari nominal terbesar ke terkecil
       filtered.sort((a, b) => (Math.abs(Number(b.nominal)) || 0) - (Math.abs(Number(a.nominal)) || 0));
 
-      // Hitung total pengeluaran untuk kategori ini
+      // Total pengeluaran untuk pos kategori ini
       const catTotal = filtered.reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0);
       
-      // Total seluruh pengeluaran
-      const grandTotalExpense = (window.flowSyncData?.summary?.pengeluaran) || 
-        allExpenses.reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0);
+      // Total belanja / seluruh pengeluaran
+      const grandTotalExpense = allExpenses.reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0) 
+        || (window.flowSyncData?.summary?.pengeluaran || 1);
       
       const pct = grandTotalExpense > 0 ? ((catTotal / grandTotalExpense) * 100).toFixed(1) : "0.0";
 
       catModalTitle.innerText = categoryName;
       catModalBadge.innerText = categoryName;
-      catModalPctBadge.innerText = `${pct}% dari total pengeluaran`;
+      catModalPctBadge.innerText = `${pct}% dari total belanja`;
       catModalSubtitle.innerText = `Total: ${fmtIDR(catTotal)} • ${filtered.length} transaksi`;
 
       if (filtered.length === 0) {
@@ -665,19 +805,23 @@
               'bg-slate-800 text-slate-500'
             }">${idx + 1}</span>
           `;
+          const bankBadge = getBankBadge(t);
 
           listHtml += `
-            <div class="bg-slate-800/60 border border-slate-700/50 p-3 rounded-xl flex items-center justify-between text-xs hover:border-slate-600/70 transition">
+            <div class="bg-slate-900 border border-slate-800/90 p-3 rounded-xl flex items-center justify-between text-xs hover:border-slate-700 transition">
               <div class="flex items-center gap-2.5 max-w-[65%]">
                 ${rankBadge}
                 <div class="space-y-0.5 min-w-0">
-                  <p class="font-semibold text-slate-200 truncate">${escapeHtml(t.merchant || 'Tanpa Keterangan')}</p>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <p class="font-semibold text-slate-200 truncate">${escapeHtml(t.merchant || 'Tanpa Keterangan')}</p>
+                    ${bankBadge}
+                  </div>
                   <p class="text-[10px] text-slate-400 truncate">${escapeHtml(t.waktu || '-')}</p>
                 </div>
               </div>
               <div class="text-right shrink-0">
                 <p class="font-bold text-rose-400">- ${fmtIDR(Math.abs(Number(t.nominal)) || 0)}</p>
-                <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">${escapeHtml(t.tipe || 'PENGELUARAN')}</span>
+                <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">${escapeHtml(t.tipe || 'PENGELUARAN')}</span>
               </div>
             </div>
           `;
@@ -701,37 +845,46 @@
       }
     }
 
+    // Pengiriman Form Input Transaksi Baru
     async function kirimTransaksi() {
       const text = document.getElementById("notifInput").value.trim();
       const webhookUrl = localStorage.getItem("gas_webhook_url");
       const statusMsg = document.getElementById("statusMsg");
       const btn = document.getElementById("btnKirim");
 
-      if (!webhookUrl || !text) return alert("Isi teks transaksi terlebih dahulu!");
+      if (!webhookUrl || !text) return alert("Isi teks catatan transaksi terlebih dahulu!");
 
       btn.disabled = true;
       btn.innerText = "Memproses...";
       statusMsg.className = "text-[11px] text-center text-slate-400 block";
-      statusMsg.innerText = "Mengirim...";
+      statusMsg.innerText = "Mengirim catatan transaksi...";
+
+      const payload = {
+        time: getFormattedNow(),
+        app: selectedSourceAccount,
+        text: text
+      };
 
       try {
         await fetch(webhookUrl, {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ time: new Date().toLocaleString("id-ID"), app: "FlowSync Web", text: text })
+          body: JSON.stringify(payload)
         });
 
-        statusMsg.innerText = "✅ Berhasil dicatat!";
-        statusMsg.className = "text-[11px] text-center text-emerald-400 block";
+        statusMsg.innerText = "✅ Transaksi berhasil dicatat!";
+        statusMsg.className = "text-[11px] text-center text-emerald-400 block font-medium";
         document.getElementById("notifInput").value = "";
-        setTimeout(fetchDataFromSheets, 1500);
+        setTimeout(() => {
+          fetchDataFromSheets(false);
+        }, 1500);
       } catch (err) {
         statusMsg.innerText = "❌ Gagal: " + err.message;
         statusMsg.className = "text-[11px] text-center text-rose-400 block";
       } finally {
         btn.disabled = false;
-        btn.innerText = "Kirim ke Sheets";
+        btn.innerText = "Simpan Transaksi ke Sheets";
       }
     }
   </script>
