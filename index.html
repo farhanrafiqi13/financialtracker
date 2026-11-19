@@ -165,21 +165,37 @@
       </div>
     </details>
 
-    <!-- 3. Section Diagram Donut Pengeluaran (Chart.js) & Daftar Kategori Interaktif -->
-    <section class="bg-gradient-to-br from-slate-900/90 to-slate-900/50 p-4 rounded-2xl border border-slate-800 shadow-lg space-y-3">
+    <!-- 3. Section Diagram Donut Pengeluaran (Chart.js) & Pemisahan Komposisi per Bank -->
+    <section class="bg-gradient-to-br from-slate-900/90 to-slate-900/50 p-4 rounded-2xl border border-slate-800 shadow-lg space-y-3.5">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Komposisi Pengeluaran</h3>
-          <p class="text-[10px] text-slate-400">Ketuk irisan grafik atau kategori untuk drill-down</p>
+          <p class="text-[10px] text-slate-400" id="chartFilterSubtitle">Pemisahan pengeluaran per sumber rekening</p>
         </div>
         <span id="chartTotalExpense" class="text-xs font-bold text-rose-400">Rp 0</span>
+      </div>
+
+      <!-- Segmented Control / Tab Filter Sumber Bank -->
+      <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-950/80 rounded-xl border border-slate-800 text-xs">
+        <button type="button" onclick="setExpenseBankFilter('all')" id="tabBankAll"
+          class="py-1.5 px-2 rounded-lg font-semibold text-center transition-all bg-slate-800 text-white shadow-sm border border-slate-700/80">
+          Semua Bank
+        </button>
+        <button type="button" onclick="setExpenseBankFilter('mandiri')" id="tabBankMandiri"
+          class="py-1.5 px-2 rounded-lg font-medium text-center transition-all text-slate-400 hover:text-slate-200">
+          🏛️ Mandiri
+        </button>
+        <button type="button" onclick="setExpenseBankFilter('bri')" id="tabBankBRI"
+          class="py-1.5 px-2 rounded-lg font-medium text-center transition-all text-slate-400 hover:text-slate-200">
+          🔵 BRImo
+        </button>
       </div>
 
       <!-- Canvas Diagram Donut -->
       <div class="relative w-full aspect-square max-w-[210px] mx-auto flex items-center justify-center my-1">
         <canvas id="expenseDonutChart"></canvas>
         <div id="chartCenterInfo" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-          <span class="text-[10px] text-slate-400 font-medium">Pengeluaran</span>
+          <span class="text-[10px] text-slate-400 font-medium" id="chartCenterBankLabel">Semua</span>
           <span id="chartCenterCount" class="text-xs font-bold text-slate-200">0 Pos</span>
         </div>
       </div>
@@ -187,7 +203,7 @@
       <!-- Legend & Daftar Kategori Interaktif -->
       <div class="space-y-1 pt-2 border-t border-slate-800">
         <div class="flex justify-between items-center text-[10px] text-slate-400 uppercase font-semibold pb-1">
-          <span>Kategori (Klik untuk rincian)</span>
+          <span id="categoryListHeaderTitle">Kategori (Klik untuk rincian)</span>
           <span>Nominal & %</span>
         </div>
         <div id="categoryBreakdownList" class="space-y-1.5 max-h-56 overflow-y-auto pr-0.5 text-xs">
@@ -263,7 +279,7 @@
       <!-- Modal Header -->
       <div class="p-4 border-b border-slate-800 flex justify-between items-start bg-slate-900/95 sticky top-0 z-10">
         <div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <span id="catModalBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-blue-950 text-blue-400 border border-blue-800/60">Kategori</span>
             <span id="catModalPctBadge" class="text-[10px] text-amber-400 bg-amber-950/60 border border-amber-800/40 px-2 py-0.5 rounded-full font-medium">0% dari total</span>
           </div>
@@ -282,7 +298,7 @@
 
       <!-- Modal Footer -->
       <div class="p-3 border-t border-slate-800 bg-slate-900/95 flex justify-between items-center text-[11px] text-slate-400">
-        <span>Diurutkan dari pengeluaran terbesar</span>
+        <span id="catModalFooterNote">Diurutkan dari pengeluaran terbesar</span>
         <button onclick="closeCategoryModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-200 font-medium transition">
           Tutup
         </button>
@@ -319,10 +335,18 @@
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     };
 
-    // Helper penentu badge Bank (Mandiri vs BRI)
+    // Helper identifikasi bank (Mandiri vs BRI)
+    function getExpenseItemBank(item) {
+      const str = `${item.aplikasi || ''} ${item.app || ''} ${item.bank || ''} ${item.pesan || ''} ${item.merchant || ''}`.toLowerCase();
+      if (str.includes("bri") || str.includes("brimo")) return "bri";
+      if (str.includes("mandiri") || str.includes("livin")) return "mandiri";
+      return "mandiri";
+    }
+
+    // Helper badge Bank (Mandiri vs BRI)
     function getBankBadge(t) {
-      const str = `${t.app || ''} ${t.aplikasi || ''} ${t.bank || ''} ${t.merchant || ''} ${t.pesan || ''}`.toUpperCase();
-      if (str.includes("BRI") || str.includes("BRIMO")) {
+      const bank = getExpenseItemBank(t);
+      if (bank === "bri") {
         return '<span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-300 border border-blue-800/60 font-semibold tracking-wide">🔵 BRI</span>';
       }
       return '<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-800/60 font-semibold tracking-wide">🏛️ Mandiri</span>';
@@ -345,6 +369,7 @@
     let expensesData = [];
     let expenseChart = null;
     let selectedSourceAccount = "Livin' by Mandiri";
+    let currentExpenseBankFilter = "all"; // 'all' | 'mandiri' | 'bri'
 
     // Palet warna dark mode Tailwind
     const chartPalette = [
@@ -382,7 +407,7 @@
       });
     });
 
-    // Pilihan Sumber Dana Transaksi
+    // Pilihan Sumber Dana Transaksi Manual
     function selectSourceAccount(account) {
       selectedSourceAccount = account;
       const btnMandiri = document.getElementById("btnSourceMandiri");
@@ -405,6 +430,49 @@
       fetchDataFromSheets(false);
     }
 
+    // Fungsi Filter Pengeluaran Berdasarkan Bank yang Dipilih
+    function filterExpensesByBank(bankFilter) {
+      const allExpenses = expensesData.length > 0 
+        ? expensesData 
+        : ((window.flowSyncData?.expenses || []).map(normalizeExpenseItem));
+
+      if (bankFilter === "mandiri") {
+        return allExpenses.filter(item => getExpenseItemBank(item) === "mandiri");
+      } else if (bankFilter === "bri") {
+        return allExpenses.filter(item => getExpenseItemBank(item) === "bri");
+      }
+      return allExpenses;
+    }
+
+    // Penggantian Tab Bank Komposisi Pengeluaran
+    function setExpenseBankFilter(filter) {
+      currentExpenseBankFilter = filter;
+      updateBankTabUI(filter);
+      refreshExpenseChartAndCategories();
+    }
+
+    function updateBankTabUI(filter) {
+      const tabAll = document.getElementById("tabBankAll");
+      const tabMandiri = document.getElementById("tabBankMandiri");
+      const tabBRI = document.getElementById("tabBankBRI");
+      const bankLabel = document.getElementById("chartCenterBankLabel");
+
+      tabAll.className = "py-1.5 px-2 rounded-lg font-medium text-center transition-all text-slate-400 hover:text-slate-200";
+      tabMandiri.className = "py-1.5 px-2 rounded-lg font-medium text-center transition-all text-slate-400 hover:text-slate-200";
+      tabBRI.className = "py-1.5 px-2 rounded-lg font-medium text-center transition-all text-slate-400 hover:text-slate-200";
+
+      if (filter === "mandiri") {
+        tabMandiri.className = "py-1.5 px-2 rounded-lg font-semibold text-center transition-all bg-amber-500/25 text-amber-300 shadow-sm border border-amber-500/60 ring-1 ring-amber-500/30";
+        if (bankLabel) bankLabel.innerText = "Mandiri";
+      } else if (filter === "bri") {
+        tabBRI.className = "py-1.5 px-2 rounded-lg font-semibold text-center transition-all bg-blue-500/25 text-blue-300 shadow-sm border border-blue-500/60 ring-1 ring-blue-500/30";
+        if (bankLabel) bankLabel.innerText = "BRImo";
+      } else {
+        tabAll.className = "py-1.5 px-2 rounded-lg font-semibold text-center transition-all bg-slate-800 text-white shadow-sm border border-slate-700/80";
+        if (bankLabel) bankLabel.innerText = "Semua";
+      }
+    }
+
     async function fetchDataFromSheets(isRefresh = false) {
       const url = localStorage.getItem("gas_webhook_url");
       if (!url) return;
@@ -420,7 +488,6 @@
       }
 
       try {
-        // Jika tombol refresh ditekan, panggil endpoint dengan ?syncGmail=true
         const sep = url.includes("?") ? "&" : "?";
         const fetchUrl = isRefresh ? `${url}${sep}syncGmail=true` : url;
 
@@ -437,7 +504,6 @@
           const rawIncomes = Array.isArray(data.incomes) ? data.incomes : [];
           incomesData = rawIncomes;
 
-          // Fallback bila backend data lama
           if (incomesData.length === 0 && expensesData.length === 0) {
             const rawList = Array.isArray(data.allTransactions) && data.allTransactions.length > 0
               ? data.allTransactions
@@ -473,7 +539,7 @@
           document.getElementById("totalMasukVal").innerText = fmtIDR(totalMasuk);
           document.getElementById("totalKeluarVal").innerText = fmtIDR(totalKeluar);
 
-          // Update Net Flow Badge (hijau jika >= 0, merah jika < 0)
+          // Update Net Flow Badge
           const netFlowBadge = document.getElementById("netFlowBadge");
           const netFlowValEl = document.getElementById("netFlowVal");
           if (netFlow >= 0) {
@@ -522,8 +588,8 @@
             txListEl.innerHTML = html;
           }
 
-          // 4. Render Donut Chart & Daftar Kategori Interaktif
-          renderExpenseChart(data.categoryBreakdown, expensesData);
+          // 4. Render Donut Chart & Daftar Kategori Sesuai Filter Bank Aktif
+          refreshExpenseChartAndCategories();
 
         } else {
           txListEl.innerHTML = '<div class="p-4 text-center text-xs text-rose-400">Gagal memuat data dari spreadsheet.</div>';
@@ -536,22 +602,19 @@
       }
     }
 
-    // Fungsi menghitung akumulasi kategori & merender Donut Chart interaktif
-    function renderExpenseChart(categoryBreakdown, expensesList) {
-      let categoryMap = {};
+    // Fungsi Render / Perbarui Donut Chart & Daftar Kategori Berdasarkan Filter Bank
+    function refreshExpenseChartAndCategories() {
+      const filteredExpenses = filterExpensesByBank(currentExpenseBankFilter);
 
-      // Akumulasikan langsung dari expensesList agar aturan Permata/RDN selalu konsisten
-      if (Array.isArray(expensesList) && expensesList.length > 0) {
-        expensesList.forEach(t => {
-          const cat = t.kategori || "Lain-lain";
-          const nom = Math.abs(Number(t.nominal)) || 0;
-          categoryMap[cat] = (categoryMap[cat] || 0) + nom;
-        });
-      } else if (categoryBreakdown && typeof categoryBreakdown === "object" && Object.keys(categoryBreakdown).length > 0) {
-        categoryMap = { ...categoryBreakdown };
-      }
+      // Hitung agregasi per kategori
+      const categoryMap = {};
+      filteredExpenses.forEach(t => {
+        const cat = t.kategori || "Lain-lain";
+        const nom = Math.abs(Number(t.nominal)) || 0;
+        categoryMap[cat] = (categoryMap[cat] || 0) + nom;
+      });
 
-      // Urutkan kategori berdasarkan nominal terbesar ke terkecil
+      // Urutkan kategori berdasarkan nominal terbesar
       const sortedCategories = Object.keys(categoryMap).sort((a, b) => Number(categoryMap[b]) - Number(categoryMap[a]));
       const chartLabels = sortedCategories;
       const chartData = sortedCategories.map(cat => Math.abs(Number(categoryMap[cat])) || 0);
@@ -564,7 +627,8 @@
       const breakdownEl = document.getElementById("categoryBreakdownList");
 
       if (sortedCategories.length === 0) {
-        breakdownEl.innerHTML = '<p class="text-center text-[11px] text-slate-500 py-3">Belum ada pos pengeluaran.</p>';
+        const bankName = currentExpenseBankFilter === "mandiri" ? "Livin' Mandiri" : (currentExpenseBankFilter === "bri" ? "BRImo" : "sumber rekening");
+        breakdownEl.innerHTML = `<p class="text-center text-[11px] text-slate-500 py-3">Belum ada pos pengeluaran dari ${bankName}.</p>`;
       } else {
         let listHtml = "";
         sortedCategories.forEach((cat, idx) => {
@@ -597,60 +661,75 @@
       const ctx = canvas.getContext("2d");
 
       if (expenseChart) {
-        expenseChart.destroy();
-      }
+        if (sortedCategories.length === 0) {
+          expenseChart.data.labels = [];
+          expenseChart.data.datasets[0].data = [];
+          expenseChart.data.datasets[0].backgroundColor = [];
+          expenseChart.update();
+          return;
+        }
+        expenseChart.data.labels = chartLabels;
+        expenseChart.data.datasets[0].data = chartData;
+        expenseChart.data.datasets[0].backgroundColor = backgroundColors;
+        expenseChart.options.plugins.tooltip.callbacks.label = function(context) {
+          const val = context.raw || 0;
+          const pct = totalExpense > 0 ? ((val / totalExpense) * 100).toFixed(1) : 0;
+          return ` ${fmtIDR(val)} (${pct}%) • Ketuk untuk rincian`;
+        };
+        expenseChart.update();
+      } else {
+        if (sortedCategories.length === 0) return;
 
-      if (sortedCategories.length === 0) return;
-
-      expenseChart = new Chart(ctx, {
-        type: "doughnut",
-        data: {
-          labels: chartLabels,
-          datasets: [{
-            data: chartData,
-            backgroundColor: backgroundColors,
-            borderColor: "#020617",
-            borderWidth: 2,
-            hoverOffset: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          cutout: "70%",
-          onClick: (event, elements) => {
-            if (elements && elements.length > 0) {
-              const index = elements[0].index;
-              const categoryName = chartLabels[index];
-              if (categoryName) {
-                openCategoryModal(categoryName);
+        expenseChart = new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels: chartLabels,
+            datasets: [{
+              data: chartData,
+              backgroundColor: backgroundColors,
+              borderColor: "#020617",
+              borderWidth: 2,
+              hoverOffset: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: "70%",
+            onClick: (event, elements) => {
+              if (elements && elements.length > 0) {
+                const index = elements[0].index;
+                const categoryName = expenseChart.data.labels[index];
+                if (categoryName) {
+                  openCategoryModal(categoryName);
+                }
               }
-            }
-          },
-          onHover: (event, chartElement) => {
-            event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: "#0f172a",
-              titleColor: "#f1f5f9",
-              bodyColor: "#cbd5e1",
-              borderColor: "#334155",
-              borderWidth: 1,
-              padding: 10,
-              boxPadding: 4,
-              callbacks: {
-                label: function(context) {
-                  const val = context.raw || 0;
-                  const pct = totalExpense > 0 ? ((val / totalExpense) * 100).toFixed(1) : 0;
-                  return ` ${fmtIDR(val)} (${pct}%) • Ketuk untuk rincian`;
+            },
+            onHover: (event, chartElement) => {
+              event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: "#0f172a",
+                titleColor: "#f1f5f9",
+                bodyColor: "#cbd5e1",
+                borderColor: "#334155",
+                borderWidth: 1,
+                padding: 10,
+                boxPadding: 4,
+                callbacks: {
+                  label: function(context) {
+                    const val = context.raw || 0;
+                    const pct = totalExpense > 0 ? ((val / totalExpense) * 100).toFixed(1) : 0;
+                    return ` ${fmtIDR(val)} (${pct}%) • Ketuk untuk rincian`;
+                  }
                 }
               }
             }
           }
-        }
-      });
+        });
+      }
     }
 
     // Modal Drill-down: Total Masuk & Total Keluar
@@ -666,7 +745,6 @@
       const isMasuk = type === "PEMASUKAN";
       let list = isMasuk ? (window.flowSyncData?.incomes || incomesData) : (expensesData || window.flowSyncData?.expenses);
 
-      // Fallback bila incomesData/expensesData kosong tetapi allTransactionsData ada
       if ((!list || list.length === 0) && allTransactionsData.length > 0) {
         list = allTransactionsData.filter(t => (t.tipe || "").toUpperCase() === type);
       }
@@ -679,7 +757,6 @@
         modalTitle.innerText = "Rincian Seluruh Pemasukan";
         modalFooterNote.innerText = "Daftar seluruh transaksi pemasukan tercatat";
       } else {
-        // Diurutkan pengeluaran terbesar ke terkecil
         list = [...list].sort((a, b) => (Math.abs(Number(b.nominal)) || 0) - (Math.abs(Number(a.nominal)) || 0));
         modalTypeBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-rose-950 text-rose-400 border border-rose-800/60";
         modalTypeBadge.innerText = "Pengeluaran";
@@ -707,7 +784,6 @@
           const sign = isMasuk ? "+" : "-";
           const bankBadge = getBankBadge(t);
 
-          // Badge peringkat untuk pengeluaran terbesar
           const rankBadge = !isMasuk ? `
             <span class="inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-bold shrink-0 ${
               idx === 0 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' :
@@ -755,7 +831,7 @@
       }
     }
 
-    // Modal Drill-down per Kategori Pengeluaran
+    // Modal Drill-down per Kategori Pengeluaran (Menyesuaikan Filter Bank Aktif)
     function openCategoryModal(categoryName) {
       if (!categoryName) return;
 
@@ -765,33 +841,34 @@
       const catModalPctBadge = document.getElementById("catModalPctBadge");
       const catModalSubtitle = document.getElementById("catModalSubtitle");
       const catModalTxList = document.getElementById("catModalTxList");
+      const catModalFooterNote = document.getElementById("catModalFooterNote");
 
-      // Filter dari expensesData (sudah ternormalisasi)
-      const allExpenses = expensesData.length > 0 ? expensesData : ((window.flowSyncData?.expenses || []).map(normalizeExpenseItem));
-      const filtered = allExpenses.filter(t => (t.kategori || '').trim().toLowerCase() === categoryName.trim().toLowerCase());
+      // Filter pengeluaran sesuai bank aktif (Semua / Mandiri / BRImo)
+      const baseExpenses = filterExpensesByBank(currentExpenseBankFilter);
+      const filtered = baseExpenses.filter(t => (t.kategori || '').trim().toLowerCase() === categoryName.trim().toLowerCase());
 
       // Urutkan dari nominal terbesar ke terkecil
       filtered.sort((a, b) => (Math.abs(Number(b.nominal)) || 0) - (Math.abs(Number(a.nominal)) || 0));
 
-      // Total pengeluaran untuk pos kategori ini
       const catTotal = filtered.reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0);
-      
-      // Total belanja / seluruh pengeluaran
-      const grandTotalExpense = allExpenses.reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0) 
-        || (window.flowSyncData?.summary?.pengeluaran || 1);
-      
-      const pct = grandTotalExpense > 0 ? ((catTotal / grandTotalExpense) * 100).toFixed(1) : "0.0";
+      const bankTotalExpense = baseExpenses.reduce((acc, t) => acc + (Math.abs(Number(t.nominal)) || 0), 0) || 1;
+      const pct = bankTotalExpense > 0 ? ((catTotal / bankTotalExpense) * 100).toFixed(1) : "0.0";
+
+      const bankNameLabel = currentExpenseBankFilter === "mandiri" 
+        ? "🏛️ Mandiri" 
+        : (currentExpenseBankFilter === "bri" ? "🔵 BRImo" : "Semua Bank");
 
       catModalTitle.innerText = categoryName;
-      catModalBadge.innerText = categoryName;
-      catModalPctBadge.innerText = `${pct}% dari total belanja`;
+      catModalBadge.innerText = bankNameLabel;
+      catModalPctBadge.innerText = `${pct}% dari total ${currentExpenseBankFilter === 'all' ? 'pengeluaran' : bankNameLabel}`;
       catModalSubtitle.innerText = `Total: ${fmtIDR(catTotal)} • ${filtered.length} transaksi`;
+      catModalFooterNote.innerText = `Diurutkan dari pengeluaran terbesar (${bankNameLabel})`;
 
       if (filtered.length === 0) {
         catModalTxList.innerHTML = `
           <div class="py-12 text-center text-slate-500">
             <p class="text-2xl mb-1">📭</p>
-            <p class="text-xs">Tidak ada data transaksi untuk kategori "${escapeHtml(categoryName)}".</p>
+            <p class="text-xs">Tidak ada data transaksi untuk kategori "${escapeHtml(categoryName)}" di ${bankNameLabel}.</p>
           </div>
         `;
       } else {
